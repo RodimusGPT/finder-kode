@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3001;
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://ssh-explorer.onrender.com', 'https://www.ssh-explorer.onrender.com'] // Update with your actual frontend URL
+    ? ['https://ssh-explorer-client.onrender.com', 'https://www.ssh-explorer-client.onrender.com'] // Correct frontend URL
     : 'http://localhost:3000', // Development frontend URL
   methods: ['GET', 'POST'],
   credentials: true,
