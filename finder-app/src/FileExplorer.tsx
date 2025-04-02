@@ -8,13 +8,22 @@ import {
   TreeViewState, 
 } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
-import { listFiles } from './services/sshService';
+import { listFiles, getFileContent, saveFileContent } from './services/sshService';
+import { CodeEditor } from './components/CodeEditor';
 
 // Define the shape of our file system items
 interface FileSystemItem {
   name: string;
   isDirectory: boolean;
   path: string; 
+}
+
+// File content state interface
+interface FileContent {
+  content: string;
+  fileName: string;
+  fileType: string;
+  contentType: string;
 }
 
 // Props interface for the FileExplorer component
@@ -49,6 +58,7 @@ const getFileIcon = (filename: string) => {
   }
 };
 
+// Main component implementation
 export function FileExplorer({ sessionId, initialPath }: FileExplorerProps) {
   const [items, setItems] = useState<Record<TreeItemIndex, TreeItem<FileSystemItem>>>({});
   const [focusedItem, setFocusedItem] = useState<TreeItemIndex>();
@@ -57,6 +67,12 @@ export function FileExplorer({ sessionId, initialPath }: FileExplorerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  
+  // New state for file content and viewing
+  const [selectedFile, setSelectedFile] = useState<FileContent | null>(null);
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   // Function to reload the current directory when toggling hidden files
   const reloadCurrentDirectory = async () => {
@@ -208,8 +224,82 @@ export function FileExplorer({ sessionId, initialPath }: FileExplorerProps) {
     );
   };
 
-  const handleSelectItems: TreeChangeHandlers<FileSystemItem>['onSelectItems'] = (itemIndices) => {
+  // Updated selection handler to load file content
+  const handleSelectItems: TreeChangeHandlers<FileSystemItem>['onSelectItems'] = async (itemIndices) => {
     setSelectedItems(itemIndices);
+    
+    // If only one item is selected and it's not a directory, load its content
+    if (itemIndices.length === 1) {
+      const selectedItemId = itemIndices[0];
+      const selectedItem = items[selectedItemId];
+      
+      if (selectedItem && !selectedItem.isFolder) {
+        // It's a file, open it in the editor
+        await loadFileContent(selectedItem.data.path);
+      } else {
+        // It's a directory or multiple selection, close the editor
+        setFileViewerOpen(false);
+        setSelectedFile(null);
+      }
+    } else {
+      // Multiple or no selection, close the editor
+      setFileViewerOpen(false);
+      setSelectedFile(null);
+    }
+  };
+
+  // Function to load file content
+  const loadFileContent = async (filePath: string) => {
+    setFileLoading(true);
+    setFileError(null);
+    
+    try {
+      const fileData = await getFileContent(sessionId, filePath);
+      setSelectedFile(fileData);
+      setFileViewerOpen(true);
+    } catch (err) {
+      setFileError(err instanceof Error ? err.message : 'Failed to load file');
+      console.error('Error loading file:', err);
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
+  // Save file content
+  const handleSaveFile = async (content: string) => {
+    if (!selectedFile) return;
+    
+    try {
+      // Get the currently selected tree item to find the full path
+      const selectedItemId = selectedItems[0];
+      const selectedItem = items[selectedItemId];
+      
+      if (selectedItem && !selectedItem.isFolder) {
+        // Use the full path from the selected tree item
+        await saveFileContent(sessionId, selectedItem.data.path, content);
+      } else {
+        // If somehow we don't have the tree item, use the filename
+        // (this is a fallback that shouldn't be needed)
+        await saveFileContent(sessionId, selectedFile.fileName, content);
+      }
+      
+      // Update the selected file with the new content
+      setSelectedFile({
+        ...selectedFile,
+        content
+      });
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error('Error saving file:', err);
+      return Promise.reject(err);
+    }
+  };
+
+  // Close file viewer
+  const handleCloseFileViewer = () => {
+    setFileViewerOpen(false);
+    setSelectedFile(null);
   };
 
   // Define view state object
@@ -237,15 +327,16 @@ export function FileExplorer({ sessionId, initialPath }: FileExplorerProps) {
     <div 
       className="explorer-container" 
       style={{ 
-        maxWidth: '800px', 
+        maxWidth: '1200px', // Increased max width for the split view
         margin: '0 auto',
         height: '70vh',
         minHeight: '400px',
         border: '1px solid #444',
         borderRadius: '6px',
-        overflow: 'auto',
+        overflow: 'hidden',
         boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-        position: 'relative'
+        position: 'relative',
+        display: 'flex', // Use flexbox for the split view
       }}
     >
       <style>
@@ -261,93 +352,192 @@ export function FileExplorer({ sessionId, initialPath }: FileExplorerProps) {
           }
         `}
       </style>
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        zIndex: 10,
+      
+      {/* File tree panel */}
+      <div className="file-tree-panel" style={{
+        width: fileViewerOpen ? '30%' : '100%',
+        borderRight: fileViewerOpen ? '1px solid #444' : 'none',
+        height: '100%',
+        position: 'relative',
         display: 'flex',
-        gap: '8px'
+        flexDirection: 'column',
+        transition: 'width 0.3s ease',
       }}>
-        {/* Toggle button for hidden files */}
-        <button
-          onClick={toggleHiddenFiles}
-          style={{
-            backgroundColor: showHidden ? '#2b5797' : '#333',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '4px 8px',
-            fontSize: '12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          <span>{showHidden ? 'Hide' : 'Show'} Hidden Files</span>
-        </button>
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 10,
+          display: 'flex',
+          gap: '8px'
+        }}>
+          {/* Toggle button for hidden files */}
+          <button
+            onClick={toggleHiddenFiles}
+            style={{
+              backgroundColor: showHidden ? '#2b5797' : '#333',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 8px',
+              fontSize: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <span>{showHidden ? 'Hide' : 'Show'} Hidden Files</span>
+          </button>
+          
+          {/* Loading indicator */}
+          {isLoading && (
+            <div style={{
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              color: 'white',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '12px'
+            }}>
+              Loading...
+            </div>
+          )}
+        </div>
         
-        {/* Loading indicator */}
-        {isLoading && (
-          <div style={{
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '12px'
-          }}>
-            Loading...
-          </div>
-        )}
+        <div style={{ flexGrow: 1, overflow: 'auto' }}>
+          <ControlledTreeEnvironment<FileSystemItem>
+            items={items} 
+            viewState={viewState} 
+            getItemTitle={getItemTitle}
+            onFocusItem={handleFocusItem}
+            onExpandItem={handleExpandItem} 
+            onCollapseItem={handleCollapseItem}
+            onSelectItems={handleSelectItems}
+            renderItemArrow={({ item, context }) => (
+              <div className="rct-tree-item-arrow">
+                {item.isFolder && (context.isExpanded ? '▼' : '►')}
+                {!item.isFolder && <span style={{ width: '1em', display: 'inline-block' }}></span>}
+              </div>
+            )}
+            renderItemTitle={({ title, item, context }) => {
+              const isSelected = context.isSelected;
+              const [isHovered, setIsHovered] = React.useState(false);
+              
+              const textStyle = {
+                color: isSelected 
+                  ? '#2b5797' // Blue text for selected 
+                  : isHovered 
+                    ? '#ffffff' // White text on hover
+                    : '#cccccc', // Default light gray
+                fontWeight: isSelected ? 500 : 'normal',
+              };
+              
+              return (
+                <div
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  style={{ display: 'flex', alignItems: 'center' }}
+                >
+                  <span style={{ marginRight: '6px' }}>
+                    {item.isFolder ? '📁' : getFileIcon(item.data.name)}
+                  </span>
+                  <span style={textStyle}>{title}</span>
+                </div>
+              );
+            }}
+          >
+            {items.root && <Tree treeId={TREE_ID} rootItem="root" treeLabel="Remote File System" />}
+          </ControlledTreeEnvironment>
+          {Object.keys(items).length === 0 && !isLoading && !error && (
+            <div style={{ padding: '20px', color: '#aaa', textAlign: 'center' }}>
+              No files loaded yet
+            </div>
+          )}
+        </div>
       </div>
       
-      <ControlledTreeEnvironment<FileSystemItem>
-         items={items} 
-         viewState={viewState} 
-         getItemTitle={getItemTitle}
-         onFocusItem={handleFocusItem}
-         onExpandItem={handleExpandItem} 
-         onCollapseItem={handleCollapseItem}
-         onSelectItems={handleSelectItems}
-         renderItemArrow={({ item, context }) => (
-           <div className="rct-tree-item-arrow">
-             {item.isFolder && (context.isExpanded ? '▼' : '►')}
-             {!item.isFolder && <span style={{ width: '1em', display: 'inline-block' }}></span>}
-           </div>
-         )}
-         renderItemTitle={({ title, item, context }) => {
-           const isSelected = context.isSelected;
-           const [isHovered, setIsHovered] = React.useState(false);
-           
-           const textStyle = {
-             color: isSelected 
-               ? '#2b5797' // Blue text for selected 
-               : isHovered 
-                 ? '#ffffff' // White text on hover
-                 : '#cccccc', // Default light gray
-             fontWeight: isSelected ? 500 : 'normal',
-           };
-           
-           return (
-             <div
-               onMouseEnter={() => setIsHovered(true)}
-               onMouseLeave={() => setIsHovered(false)}
-               style={{ display: 'flex', alignItems: 'center' }}
-             >
-               <span style={{ marginRight: '6px' }}>
-                 {item.isFolder ? '📁' : getFileIcon(item.data.name)}
-               </span>
-               <span style={textStyle}>{title}</span>
-             </div>
-           );
-         }}
-      >
-        {items.root && <Tree treeId={TREE_ID} rootItem="root" treeLabel="Remote File System" />}
-      </ControlledTreeEnvironment>
-      {Object.keys(items).length === 0 && !isLoading && !error && (
-        <div style={{ padding: '20px', color: '#aaa', textAlign: 'center' }}>
-          No files loaded yet
+      {/* File viewer panel */}
+      {fileViewerOpen && (
+        <div className="file-viewer-panel" style={{
+          width: '70%',
+          height: '100%',
+          backgroundColor: '#1e1e1e',
+          position: 'relative'
+        }}>
+          {fileLoading && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              color: '#e0e0e0',
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              zIndex: 10
+            }}>
+              Loading file...
+            </div>
+          )}
+          
+          {fileError && (
+            <div style={{
+              padding: '20px',
+              color: '#ff9999',
+              backgroundColor: '#5a1c1c',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <h3>Error Loading File</h3>
+              <p>{fileError}</p>
+              <button
+                onClick={handleCloseFileViewer}
+                style={{
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '8px 12px',
+                  marginTop: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          )}
+          
+          {selectedFile && !fileLoading && !fileError && (
+            <>
+              <button
+                onClick={handleCloseFileViewer}
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  backgroundColor: 'transparent',
+                  color: '#cccccc',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  zIndex: 5
+                }}
+              >
+                ✕
+              </button>
+              <CodeEditor
+                content={selectedFile.content}
+                fileName={selectedFile.fileName}
+                fileType={selectedFile.fileType}
+                contentType={selectedFile.contentType}
+                onSave={handleSaveFile}
+              />
+            </>
+          )}
         </div>
       )}
     </div>

@@ -213,6 +213,146 @@ app.get('/api/files', async (req, res) => {
   }
 });
 
+// Get file content
+app.get('/api/file', async (req, res) => {
+  const { sessionId, path } = req.query;
+  
+  if (!sessionId || !path) {
+    return res.status(400).json({ error: 'Session ID and file path are required' });
+  }
+  
+  const session = sshSessions.get(sessionId);
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+  
+  const conn = session.conn;
+  
+  try {
+    // Execute a command to read the file
+    conn.exec(`cat "${path}"`, (err, stream) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      
+      let data = '';
+      let errorData = '';
+      
+      stream.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      stream.stderr.on('data', (chunk) => {
+        errorData += chunk;
+      });
+      
+      stream.on('close', (code) => {
+        if (code !== 0) {
+          return res.status(500).json({ 
+            error: 'Failed to read file', 
+            stderr: errorData 
+          });
+        }
+        
+        // Attempt to determine file type from extension
+        const fileExt = path.split('.').pop().toLowerCase();
+        const mimeTypes = {
+          'js': 'application/javascript',
+          'ts': 'application/typescript',
+          'html': 'text/html',
+          'css': 'text/css',
+          'json': 'application/json',
+          'md': 'text/markdown',
+          'txt': 'text/plain',
+          'py': 'text/x-python',
+          'sh': 'text/x-sh',
+          'php': 'text/x-php',
+        };
+        
+        const contentType = mimeTypes[fileExt] || 'text/plain';
+        
+        // Return the file content
+        res.json({
+          content: data,
+          fileName: path.split('/').pop(),
+          fileType: fileExt,
+          contentType,
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Error reading file:', error);
+    res.status(500).json({ error: error.message || 'Failed to read file' });
+  }
+});
+
+// Save file content
+app.post('/api/file', async (req, res) => {
+  const { sessionId, path, content } = req.body;
+  
+  if (!sessionId || !path || content === undefined) {
+    return res.status(400).json({ error: 'Session ID, file path, and content are required' });
+  }
+  
+  const session = sshSessions.get(sessionId);
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+  
+  const conn = session.conn;
+  
+  try {
+    // Create a temporary file with the content
+    const tempFile = `/tmp/temp_edit_${Date.now()}.txt`;
+    const writeCommand = `cat > "${tempFile}" << 'EOL'\n${content}\nEOL`;
+    
+    // Execute command to write to temp file
+    await new Promise((resolve, reject) => {
+      conn.exec(writeCommand, (err, stream) => {
+        if (err) return reject(err);
+        
+        let errorData = '';
+        
+        stream.stderr.on('data', (chunk) => {
+          errorData += chunk;
+        });
+        
+        stream.on('close', (code) => {
+          if (code !== 0) {
+            return reject(new Error(`Failed to create temp file: ${errorData}`));
+          }
+          resolve();
+        });
+      });
+    });
+    
+    // Move the temp file to the target location
+    await new Promise((resolve, reject) => {
+      conn.exec(`mv "${tempFile}" "${path}"`, (err, stream) => {
+        if (err) return reject(err);
+        
+        let errorData = '';
+        
+        stream.stderr.on('data', (chunk) => {
+          errorData += chunk;
+        });
+        
+        stream.on('close', (code) => {
+          if (code !== 0) {
+            return reject(new Error(`Failed to save file: ${errorData}`));
+          }
+          resolve();
+        });
+      });
+    });
+    
+    res.status(200).json({ message: 'File saved successfully' });
+  } catch (error) {
+    console.error('Error saving file:', error);
+    res.status(500).json({ error: error.message || 'Failed to save file' });
+  }
+});
+
 // Close SSH connection
 app.post('/api/disconnect', (req, res) => {
   const { sessionId } = req.body;
