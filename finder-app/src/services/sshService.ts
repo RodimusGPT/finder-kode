@@ -1,8 +1,12 @@
 // SSH API Service
 
+// Type-safe environment detection for browser context
+const isProduction = import.meta.env?.MODE === 'production' || 
+  (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
+
 // Use environment variable if available, with fallbacks
-const API_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' 
+const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 
+  (isProduction 
     ? `${window.location.origin}/api` 
     : 'http://localhost:3001/api');
 

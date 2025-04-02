@@ -7,11 +7,11 @@ interface CodeEditorProps {
   content: string;
   fileName: string;
   fileType: string;
-  contentType: string;
+  contentType: string; // Used for MIME type information
   onSave?: (content: string) => Promise<void>;
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ content, fileName, fileType, contentType, onSave }) => {
+export const CodeEditor: React.FC<CodeEditorProps> = ({ content, fileName, fileType, contentType: _contentType, onSave }) => {
   const [editableContent, setEditableContent] = useState(content);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
