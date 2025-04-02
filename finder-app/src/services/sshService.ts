@@ -1,8 +1,12 @@
 // SSH API Service
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? `${window.location.origin}/api` 
-  : 'http://localhost:3001/api';
+// Use environment variable if available, with fallbacks
+const API_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? `${window.location.origin}/api` 
+    : 'http://localhost:3001/api');
+
+console.log('Using API URL:', API_URL);
 
 export interface SSHConnectionParams {
   host: string;

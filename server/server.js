@@ -2,12 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const { Client } = require('ssh2');
 const path = require('path');
+const mime = require('mime-types');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Enable CORS for the frontend
-app.use(cors());
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://ssh-explorer.onrender.com', 'https://www.ssh-explorer.onrender.com'] // Update with your actual frontend URL
+    : 'http://localhost:3000', // Development frontend URL
+  methods: ['GET', 'POST'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Store SSH connections
