@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: script-src 'self' 'unsafe-eval' 'unsafe-inline';
+  Content-Security-Policy: script-src 'self' 'unsafe-eval' 'unsafe-inline'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer-when-downgrade 
