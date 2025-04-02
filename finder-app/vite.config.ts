@@ -11,4 +11,7 @@ export default defineConfig({
       'Content-Security-Policy': "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
     },
   },
+  build: {
+    outDir: 'build',
+  }
 });
