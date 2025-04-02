@@ -1,0 +1,115 @@
+/* 
+   File Explorer Theme
+   A simplified and focused dark theme
+*/
+
+/* Basic app container */
+.explorer-container {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+/* Full height container for tree */
+.rct-tree {
+  height: 100% !important;
+}
+
+/* Remove default styles that might be conflicting */
+.rct-tree-root {
+  background-color: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: 14px !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+
+/* Basic list styles */
+.rct-tree-items-container {
+  padding-left: 16px !important;
+}
+
+/* Override any conflicting background for selected items */
+.rct-tree-item--selected * {
+  background-color: transparent !important;
+}
+
+/* Tree item rows */
+.rct-tree-item-li {
+  list-style-type: none !important;
+  padding: 2px 0 !important;
+}
+
+/* Arrow container */
+.rct-tree-item-arrow {
+  color: #888888 !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+
+/* Complete override of ALL background colors */
+.rct-tree-root *,
+.rct-tree-item,
+.rct-tree-item-li,
+.rct-tree-item-title-container,
+.rct-tree-item--focused,
+.rct-tree-item--selected,
+.rct-tree-item--focused .rct-tree-item-title-container,
+.rct-tree-item--selected .rct-tree-item-title-container,
+.rct-tree-item-title-container:hover,
+.rct-tree-item--search-match,
+.rct-tree-item--search-match .rct-tree-item-title-container,
+.rct-tree-item--focused > .rct-tree-item-li,
+.rct-tree-item--selected > .rct-tree-item-li,
+.rct-tree-item--selected > .rct-tree-item-li > .rct-tree-item-title-container,
+.rct-tree-item--focused > .rct-tree-item-li > .rct-tree-item-title-container,
+.rct-tree-item:not(.rct-tree-item--selected) > .rct-tree-item-li > .rct-tree-item-title-container:hover,
+.rct-tree-item:not(.rct-tree-item--selected) > .rct-tree-item-li > .rct-tree-item-title-container:hover *,
+.rct-tree-item--focused > .rct-tree-item-li > .rct-tree-item-title-container *,
+.rct-tree-item--selected > .rct-tree-item-li > .rct-tree-item-title-container *,
+.rct-tree .rct-tree-item-title-container,
+.rct-tree .rct-tree-item-title-container:hover,
+.rct-tree .rct-tree-item:hover,
+.rct-tree .rct-tree-item:hover *,
+.rct-tree .rct-tree-item--selected,
+.rct-tree .rct-tree-item--selected *,
+.rct-tree .rct-tree-item--focused,
+.rct-tree .rct-tree-item--focused * {
+  background-color: transparent !important;
+  background: none !important;
+}
+
+/* Turn off all borders and outlines */
+.rct-tree-root *,
+.rct-tree-item,
+.rct-tree-item-li,
+.rct-tree-item-title-container,
+.rct-tree-item--focused,
+.rct-tree-item--selected,
+.rct-tree-item--focused .rct-tree-item-title-container,
+.rct-tree-item--selected .rct-tree-item-title-container,
+.rct-tree-item-title-container:hover,
+.rct-tree-item--search-match,
+.rct-tree-item--search-match .rct-tree-item-title-container {
+  outline: none !important;
+  border-color: transparent !important;
+}
+
+/* Text colors for different states */
+.rct-tree-item-title {
+  color: #cccccc !important; /* Default text color */
+}
+
+/* Hover text color */
+.rct-tree-item:not(.rct-tree-item--selected) .rct-tree-item-title-container:hover .rct-tree-item-title,
+.rct-tree-item-title-container:hover .rct-tree-item-title {
+  color: #ffffff !important; /* White text on hover */
+}
+
+/* Selected item text color */
+.rct-tree-item--selected .rct-tree-item-title,
+.rct-tree-item--selected > .rct-tree-item-li > .rct-tree-item-title-container .rct-tree-item-title {
+  color: #2b5797 !important; /* Blue text for selected */
+  font-weight: 500 !important;
+} 

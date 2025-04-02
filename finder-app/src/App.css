@@ -1,0 +1,61 @@
+/* Remove default Vite styles */
+/* #root { ... } */
+/* .logo { ... } */
+/* etc... */
+
+/* Basic app container adjustments */
+.App {
+  font-family: sans-serif;
+  background-color: #121212; /* Add dark background to the overall app */
+  color: #e0e0e0; /* Set default light text color for the app */
+  min-height: 100vh; /* Ensure background covers viewport */
+}
+
+/* Adjust heading color for dark theme */
+.App h1 {
+  color: #ffffff;
+}
+
+/* react-complex-tree overrides - Dark Theme */
+:root {
+  --rct-color-tree-bg: #1e1e1e;       /* Dark background for the tree */
+  --rct-color-focustree-bg: #252526;   /* Slightly lighter dark bg when tree focused */
+  --rct-color-primary: #007acc;       /* Bright blue for selection */
+  --rct-color-primary-light: #3399ff; /* Lighter blue for hover/focus hints */
+  --rct-color-arrow: #cccccc;         /* Light gray arrow */
+  --rct-color-item-text: #d4d4d4;       /* Light gray text (intended) */
+  --rct-color-item-selected-text: #ffffff; /* White text when selected */
+  --rct-color-item-focused-border: var(--rct-color-primary);
+  --rct-item-height: 28px;
+}
+
+/* Force Normal item title color (Light) */
+.rct-tree-item-li .rct-tree-item-title-container .rct-tree-item-title {
+    color: var(--rct-color-item-text) !important; /* Force light gray color */
+    padding: 0 4px; 
+}
+
+/* Hover effect for non-selected items */
+.rct-tree-item:not(.rct-tree-item--selected) > .rct-tree-item-li > .rct-tree-item-title-container:hover {
+    background-color: #2a2a2a; /* Even darker gray hover background */
+}
+/* Ensure hover text is black */
+.rct-tree-item:not(.rct-tree-item--selected) > .rct-tree-item-li > .rct-tree-item-title-container:hover .rct-tree-item-title {
+    color: #000000 !important; /* Use black text on hover */
+}
+
+
+/* Selected item text and background */
+.rct-tree-item--selected > .rct-tree-item-li > .rct-tree-item-title-container {
+  background-color: #404040; /* Dark gray selection background */
+}
+/* Force selected item text color to black */
+.rct-tree-item--selected > .rct-tree-item-li > .rct-tree-item-title-container > .rct-tree-item-title {
+  color: #000000 !important; /* Force black when selected */
+}
+
+/* Focused item outline */
+.rct-tree-item--focused > .rct-tree-item-li > .rct-tree-item-title-container {
+    outline: 1px solid var(--rct-color-item-focused-border);
+    outline-offset: -1px;
+}
