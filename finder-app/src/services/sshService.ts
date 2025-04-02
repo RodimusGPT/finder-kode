@@ -4,11 +4,11 @@
 const isProduction = import.meta.env?.MODE === 'production' || 
   (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
 
-// Use environment variable if available, with fallbacks
-const API_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 
+// Use Vite environment variable if available, with fallbacks
+const API_URL = import.meta.env.VITE_API_URL || 
   (isProduction 
-    ? `${window.location.origin}/api` 
-    : 'http://localhost:3001/api');
+    ? `${window.location.origin}/api` // Fallback (shouldn't be used if VITE_API_URL is set)
+    : 'http://localhost:3001/api'); // Development fallback
 
 console.log('Using API URL:', API_URL);
 
